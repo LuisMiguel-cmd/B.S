@@ -1,32 +1,66 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import norm, lognorm
+
+# Configurações da Simulação
+np.random.seed(42)
+t_final = 5         # Tempo final: 5 segundos
+passos = 10000      # Alta resolução
+n_caminhos = 1000
+dt = t_final / passos
+t = np.linspace(0, t_final, passos)
 
 # Parâmetros
-S0 = 100.0
-mu = 0.05
-sigma = 0.2
-T = 1.0
-N = 1000
-M = 1000
-dt = T / N
+mu = 0.15
+sigma = 0.20
+S0 = 1.0
 
-# Tempo
-t = np.linspace(0, T, N + 1)
+# --- Geração dos Processos ---
+# 1. Movimento Browniano com Drift (Linear)
+dw = np.random.normal(0, np.sqrt(dt), size=(n_caminhos, passos))
+w_pure = np.cumsum(dw, axis=1)
+# Adicionando o drift linear para coincidir com a imagem: x(t) = mu*t + sigma*W(t)
+w = mu * t + sigma * w_pure
 
-# Browniano (Monte Carlo)
-dW = np.sqrt(dt) * np.random.normal(0, 1, (M, N))
-W = np.zeros((M, N + 1))
-W[:, 1:] = np.cumsum(dW, axis=1)
+# 2. Movimento Browniano Geométrico (Exponencial)
+s = S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * w_pure)
 
-# Browniano geométrico
-S = S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * W)
+# --- Visualização ---
+fig, axs = plt.subplots(2, 2, figsize=(14, 9),
+                       gridspec_kw={'height_ratios': [2, 1]})
 
-# Plot de algumas trajetórias
-plt.figure()
+# --- COLUNA 1: MOVIMENTO BROWNIANO (LINEAR) ---
 for i in range(20):
-    plt.plot(t, S[i])
+    axs[0, 0].plot(t, w[i], lw=0.5, alpha=0.6, color='seagreen')
+axs[0, 0].set_title("Movimento Browniano com Drift Linear", fontsize=14)
+axs[0, 0].set_ylabel("Posição X(t)")
+axs[0, 0].grid(True, linestyle='--', alpha=0.5)
 
-plt.title("Monte Carlo – Movimento Browniano Geométrico")
-plt.xlabel("Tempo")
-plt.ylabel("S(t)")
+final_w = w[:, -1]
+x_axis_w = np.linspace(final_w.min() - 0.5, final_w.max() + 0.5, 500)
+axs[1, 0].hist(final_w, bins=60, density=True, color='lightgreen', alpha=0.5, label='Simulado')
+# Média da normal com drift é mu*t
+axs[1, 0].plot(x_axis_w, norm.pdf(x_axis_w, mu*t_final, sigma*np.sqrt(t_final)), color='darkgreen', lw=2, label='Teórico (Normal)')
+axs[1, 0].set_xlabel("Valor final em t=5s")
+axs[1, 0].legend()
+
+# --- COLUNA 2: MOVIMENTO BROWNIANO GEOMÉTRICO (EXPONENCIAL) ---
+for i in range(20):
+    axs[0, 1].plot(t, s[i], lw=0.5, alpha=0.6, color='royalblue')
+axs[0, 1].set_title("Movimento Browniano Geométrico (Log-Normal)", fontsize=14)
+axs[0, 1].set_ylabel("Preço S(t)")
+axs[0, 1].grid(True, linestyle='--', alpha=0.5)
+
+final_s = s[:, -1]
+x_axis_s = np.linspace(final_s.min() - 0.2, final_s.max() + 0.5, 500)
+axs[1, 1].hist(final_s, bins=60, density=True, color='skyblue', alpha=0.5, label='Simulado')
+
+shape_param = sigma * np.sqrt(t_final)
+scale_param = S0 * np.exp((mu - 0.5 * sigma**2) * t_final)
+axs[1, 1].plot(x_axis_s, lognorm.pdf(x_axis_s, s=shape_param, scale=scale_param), color='darkblue', lw=2, label='Teórico (Log-Normal)')
+axs[1, 1].set_xlabel("Valor final em t=5s")
+axs[1, 1].legend()
+
+plt.suptitle(f"Comparação: Movimento Browniano vs Browniano Geométrico (t=5s)", fontsize=16)
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 plt.show()
