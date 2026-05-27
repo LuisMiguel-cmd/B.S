@@ -1,0 +1,28 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parâmetros
+T = 1.0            # tempo final
+N = 1000           # passos no tempo
+M = 1000           # número de simulações (Monte Carlo)
+dt = T / N
+
+# Tempo
+t = np.linspace(0, T, N + 1)
+
+# Incrementos brownianos (Monte Carlo)
+dW = np.sqrt(dt) * np.random.normal(0, 1, (M, N))
+
+# Browniano: soma cumulativa
+W = np.zeros((M, N + 1))
+W[:, 1:] = np.cumsum(dW, axis=1)
+
+# Plot de algumas trajetórias
+plt.figure()
+for i in range(20):
+    plt.plot(t, W[i])
+
+plt.title("Monte Carlo – Movimento Browniano")
+plt.xlabel("Tempo")
+plt.ylabel("W(t)")
+plt.show()
