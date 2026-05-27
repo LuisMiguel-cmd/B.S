@@ -1,0 +1,88 @@
+import numpy as np
+import pandas as pd
+from scipy.stats import norm
+import matplotlib.pyplot as plt
+
+def black_scholes_call(S, K, T, r, sigma):
+    """Calcula o preço de uma opção de compra (Call) europeia."""
+    if T <= 0:
+        return max(S - K, 0)
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    call_price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    return call_price
+
+def simulate_gbm_step(S, dt, r, sigma):
+    """Simula o próximo passo do preço do ativo usando Movimento Browniano Geométrico."""
+    epsilon = np.random.normal()
+    S_next = S * np.exp((r - 0.5 * sigma ** 2) * dt + sigma * np.sqrt(dt) * epsilon)
+    return S_next
+
+# Parâmetros iniciais 
+S0 = 55.00
+K = 50.0
+r = 0.05
+sigma = 0.25
+months = 24
+T_total = 2.0
+dt = 1 / 12
+
+# Listas para armazenar os resultados
+results = []
+current_S = S0
+
+print("-" * 55)
+print(f"{'Mês':<5} | {'Ativo (S)':<12} | {'Opção (C)':<12} | {'K + C':<12}")
+print("-" * 55)
+
+for month in range(months + 1):
+    T_remaining = max(T_total - (month * dt), 0)
+    C = black_scholes_call(current_S, K, T_remaining, r, sigma)
+
+    print(f"{month:<5} | {current_S:<12.2f} | {C:<12.2f} | {K + C:<12.2f}")
+
+    results.append({
+        "Mês": month,
+        "S": current_S,
+        "K+C": K + C,
+        "C": C
+    })
+
+    if month < months:
+        current_S = simulate_gbm_step(current_S, dt, r, sigma)
+
+print("-" * 55)
+df = pd.DataFrame(results)
+
+# Gerar gráfico de barras 
+plt.figure(figsize=(18, 9))
+bar_width = 0.35
+index = df["Mês"]
+
+plt.bar(index - bar_width / 2, df["S"], bar_width, label='Preço do Ativo (S)', color='skyblue', edgecolor='black', alpha=0.8)
+plt.bar(index + bar_width / 2, df["K+C"], bar_width, label='Strike + Prêmio (K + C)', color='orange', edgecolor='black', alpha=0.8)
+
+plt.xlabel('Mês', fontsize=12)
+plt.ylabel('Valor ($)', fontsize=12)
+plt.title('Simulação Mensal (24 Meses): S vs. K + C', fontsize=16, pad=20)
+plt.xticks(index)
+
+max_val = max(df["S"].max(), df["K+C"].max())
+plt.ylim(0, max_val * 1.15)
+
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize=12)
+
+for i in range(len(df)):
+    plt.text(i - bar_width / 2, df["S"][i] + (max_val * 0.01), f'{df["S"][i]:.1f}',
+             ha='center', va='bottom', fontsize=8, rotation=90, color='darkblue')
+    plt.text(i + bar_width / 2, df["K+C"][i] + (max_val * 0.01), f'{df["K+C"][i]:.1f}',
+             ha='center', va='bottom', fontsize=8, rotation=90, color='darkred')
+
+plt.grid(axis='y', linestyle='--', alpha=0.5)
+plt.tight_layout()
+
+# Salvar gráfico e resultados
+plt.savefig("fixed_comparison_chart.png", bbox_inches='tight')
+df.to_csv("fixed_results.csv", index=False)
+
+print("\nGráfico salvo em: fixed_comparison_chart.png")
