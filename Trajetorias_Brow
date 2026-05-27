@@ -1,0 +1,32 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parâmetros
+S0 = 100.0
+mu = 0.05
+sigma = 0.2
+T = 1.0
+N = 1000
+M = 1000
+dt = T / N
+
+# Tempo
+t = np.linspace(0, T, N + 1)
+
+# Browniano (Monte Carlo)
+dW = np.sqrt(dt) * np.random.normal(0, 1, (M, N))
+W = np.zeros((M, N + 1))
+W[:, 1:] = np.cumsum(dW, axis=1)
+
+# Browniano geométrico
+S = S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * W)
+
+# Plot de algumas trajetórias
+plt.figure()
+for i in range(20):
+    plt.plot(t, S[i])
+
+plt.title("Monte Carlo – Movimento Browniano Geométrico")
+plt.xlabel("Tempo")
+plt.ylabel("S(t)")
+plt.show()
