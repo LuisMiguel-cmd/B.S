@@ -1,0 +1,120 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+from mpl_toolkits.mplot3d import Axes3D
+
+
+def black_scholes_call(S, K, T, r, sigma):
+    """
+    Calcula o preço de uma opção de compra (Call) Europeia.
+    """
+
+    # Evitar divisão por zero
+    T = np.maximum(T, 0.00001)
+
+    d1 = (
+        np.log(S / K)
+        + (r + 0.5 * sigma**2) * T
+    ) / (sigma * np.sqrt(T))
+
+    d2 = d1 - sigma * np.sqrt(T)
+
+    call_price = (
+        S * norm.cdf(d1)
+        - K * np.exp(-r * T) * norm.cdf(d2)
+    )
+
+    return call_price
+
+
+# =========================================================
+# PARÂMETROS
+# =========================================================
+
+K = 100
+r = 0.05
+sigma = 0.20
+
+
+# =========================================================
+# GRADE DE VALORES
+# =========================================================
+
+s_range = np.linspace(50, 150, 50)
+
+t_range = np.linspace(0.01, 2, 50)
+
+S, T = np.meshgrid(s_range, t_range)
+
+V = black_scholes_call(S, K, T, r, sigma)
+
+
+# =========================================================
+# GRÁFICO 3D
+# =========================================================
+
+fig = plt.figure(figsize=(12, 8))
+
+ax = fig.add_subplot(111, projection='3d')
+
+
+# ---------------------------------------------------------
+# Superfície
+# ---------------------------------------------------------
+
+surf = ax.plot_surface(
+    S,
+    T,
+    V,
+    cmap='viridis',
+    edgecolor='none',
+    alpha=0.9
+)
+
+
+# =========================================================
+# CONFIGURAÇÕES
+# =========================================================
+
+ax.set_title(
+    'Superfície de Preço Black-Scholes (Call Europeia)',
+    fontsize=15
+)
+
+ax.set_xlabel('Preço do Ativo (S)')
+
+ax.set_ylabel('Tempo até o Vencimento (T)')
+
+ax.set_zlabel('Preço da Opção (V)')
+
+
+# ---------------------------------------------------------
+# Barra de cores
+# ---------------------------------------------------------
+
+fig.colorbar(
+    surf,
+    shrink=0.5,
+    aspect=5
+)
+
+
+# =========================================================
+# SALVAR FIGURA
+# =========================================================
+
+plt.savefig(
+    "supbs.png",
+    dpi=300,
+    bbox_inches='tight'
+)
+
+
+# =========================================================
+# MOSTRAR FIGURA
+# =========================================================
+
+plt.show()
+
+
+print("\nFigura salva como: supbs.png")
