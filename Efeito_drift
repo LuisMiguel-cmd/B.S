@@ -1,0 +1,28 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parâmetros
+T = 1.0
+N = 500
+dt = T / N
+t = np.linspace(0, T, N + 1)
+
+S0 = 1.0
+sigma = 0.3
+mu_values = [-0.5, 0.0, 0.5]
+
+np.random.seed(1)
+
+plt.figure()
+
+for mu in mu_values:
+    dW = np.sqrt(dt) * np.random.randn(N)
+    W = np.concatenate(([0], np.cumsum(dW)))
+    S = S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * W)
+    plt.plot(t, S, label=fr"$\mu = {mu}$")
+
+plt.xlabel("Tempo")
+plt.ylabel("Preço do ativo")
+plt.legend()
+plt.title("Efeito do drift no Movimento Browniano Geométrico")
+plt.show()
