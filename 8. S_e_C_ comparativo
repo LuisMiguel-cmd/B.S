@@ -1,0 +1,136 @@
+import numpy as np
+from scipy.stats import norm
+
+# ==================================================
+# BLACK-SCHOLES
+# ==================================================
+
+def black_scholes_call(S, K, T, r, sigma):
+    """Calcula o preço de uma opção de compra (Call) europeia."""
+    if T <= 0:
+        return max(S - K, 0)
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    call_price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    return call_price
+
+def simulate_gbm_step(S, dt, mu, sigma):
+    """
+    Simula um passo do Movimento Browniano Geométrico
+    utilizando a taxa livre de risco.
+    """
+
+    epsilon = np.random.normal()
+
+    S_next = S * np.exp(
+        (mu - 0.5 * sigma**2) * dt
+        + sigma * np.sqrt(dt) * epsilon
+    )
+
+    return S_next
+
+
+
+
+# =========================================================
+# PARÂMETROS
+# =========================================================
+
+S0 = 48.02
+mu = 0.10
+r = 0.05          # taxa livre de risco
+sigma = 0.20      # volatilidade
+K= 45
+dt = 1 / 12       # passo mensal
+n_sim = 100
+
+# ==================================================
+# C0
+# ==================================================
+
+C0 = black_scholes_call(
+    S0,
+    K,
+    2,
+    r,
+    sigma
+)
+
+# ==================================================
+# LISTAS
+# ==================================================
+
+C12_values = []
+C24_values = []
+
+# ==================================================
+# 100 SIMULAÇÕES
+# ==================================================
+
+for _ in range(n_sim):
+
+    S = S0
+
+    # --------------------------
+    # até mês 12
+    # --------------------------
+
+    for mes in range(12):
+
+        S = simulate_gbm_step(
+            S,
+            dt,
+            mu,
+            sigma
+        )
+
+    S12 = S
+
+    C12 = black_scholes_call(
+        S12,
+        K,
+        1,
+        r,
+        sigma
+    )
+
+    C12_values.append(C12)
+
+    # --------------------------
+    # continua até mês 24
+    # --------------------------
+
+    for mes in range(12):
+
+        S = simulate_gbm_step(
+            S,
+            dt,
+            mu,
+            sigma
+        )
+
+    S24 = S
+
+    C24 = black_scholes_call(
+        S24,
+        K,
+        0,
+        r,
+        sigma
+    )
+
+    C24_values.append(C24)
+
+# ==================================================
+# MÉDIAS
+# ==================================================
+
+C12_medio = np.mean(C12_values)
+C24_medio = np.mean(C24_values)
+
+print("="*50)
+print(f"C0        = {C0:.4f}")
+print(f"Média C12 = {C12_medio:.4f}")
+print(f"Média C24 = {C24_medio:.4f}")
+print(f"C24+45/ C0+45 = {(C24_medio+45)/(45+C0):.4f}")
+print("="*50)
