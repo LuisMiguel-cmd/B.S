@@ -4,13 +4,16 @@ from scipy.stats import norm
 from mpl_toolkits.mplot3d import Axes3D
 
 
+# =========================================================
+# BLACK-SCHOLES
+# =========================================================
+
 def black_scholes_call(S, K, T, r, sigma):
     """
-    Calcula o preço de uma opção de compra (Call) Europeia.
+    Preço de uma opção de compra (Call) Europeia.
     """
 
-    # Evitar divisão por zero
-    T = np.maximum(T, 0.00001)
+    T = np.maximum(T, 1e-6)
 
     d1 = (
         np.log(S / K)
@@ -19,12 +22,10 @@ def black_scholes_call(S, K, T, r, sigma):
 
     d2 = d1 - sigma * np.sqrt(T)
 
-    call_price = (
+    return (
         S * norm.cdf(d1)
         - K * np.exp(-r * T) * norm.cdf(d2)
     )
-
-    return call_price
 
 
 # =========================================================
@@ -37,12 +38,11 @@ sigma = 0.20
 
 
 # =========================================================
-# GRADE DE VALORES
+# MALHA
 # =========================================================
 
-s_range = np.linspace(50, 150, 50)
-
-t_range = np.linspace(0.01, 2, 50)
+s_range = np.linspace(50, 150, 300)
+t_range = np.linspace(0.01, 2.0, 300)
 
 S, T = np.meshgrid(s_range, t_range)
 
@@ -50,71 +50,192 @@ V = black_scholes_call(S, K, T, r, sigma)
 
 
 # =========================================================
-# GRÁFICO 3D
+# FIGURA
 # =========================================================
 
-fig = plt.figure(figsize=(12, 8))
+fig = plt.figure(figsize=(14, 10))
 
 ax = fig.add_subplot(111, projection='3d')
 
 
-# ---------------------------------------------------------
-# Superfície
-# ---------------------------------------------------------
+# =========================================================
+# SUPERFÍCIE
+# =========================================================
 
 surf = ax.plot_surface(
     S,
     T,
     V,
     cmap='viridis',
-    edgecolor='none',
-    alpha=0.9
+    linewidth=0,
+    antialiased=True,
+    shade=True,
+    alpha=0.92
 )
 
 
 # =========================================================
-# CONFIGURAÇÕES
+# CURVAS DE NÍVEL
+# =========================================================
+
+ax.contour(
+    S,
+    T,
+    V,
+    zdir='z',
+    offset=0,
+    levels=15,
+    cmap='viridis'
+)
+
+
+# =========================================================
+# CURVA DESTACADA S = K
+# =========================================================
+
+T_curve = np.linspace(0.01, 2.0, 600)
+
+S_curve = np.full_like(T_curve, K)
+
+V_curve = black_scholes_call(
+    S_curve,
+    K,
+    T_curve,
+    r,
+    sigma
+)
+
+ax.plot(
+    S_curve,
+    T_curve,
+    V_curve,
+    color='red',
+    linewidth=4,
+    label=r'$S = K = 100$'
+)
+
+# Pontos inicial e final da curva
+
+ax.scatter(
+    S_curve[0],
+    T_curve[0],
+    V_curve[0],
+    color='black',
+    s=80
+)
+
+ax.scatter(
+    S_curve[-1],
+    T_curve[-1],
+    V_curve[-1],
+    color='black',
+    s=80
+)
+
+
+# =========================================================
+# TÍTULO E EIXOS
 # =========================================================
 
 ax.set_title(
-    'Superfície de Preço Black-Scholes (Call Europeia)',
-    fontsize=15
+    'Superfície de Preço da Opção Call - Modelo de Black-Scholes',
+    fontsize=16,
+    pad=20
 )
 
-ax.set_xlabel('Preço do Ativo (S)')
+ax.set_xlabel(
+    'Preço do Ativo (S)',
+    fontsize=12,
+    labelpad=12
+)
 
-ax.set_ylabel('Tempo até o Vencimento (T)')
+ax.set_ylabel(
+    'Tempo até o Vencimento (T)',
+    fontsize=12,
+    labelpad=12
+)
 
-ax.set_zlabel('Preço da Opção (V)')
-
-
-# ---------------------------------------------------------
-# Barra de cores
-# ---------------------------------------------------------
-
-fig.colorbar(
-    surf,
-    shrink=0.5,
-    aspect=5
+ax.set_zlabel(
+    'Preço da Opção (V)',
+    fontsize=12,
+    labelpad=12
 )
 
 
 # =========================================================
-# SALVAR FIGURA
+# GRID
+# =========================================================
+
+ax.grid(True)
+
+ax.xaxis._axinfo["grid"]['linewidth'] = 0.8
+ax.yaxis._axinfo["grid"]['linewidth'] = 0.8
+ax.zaxis._axinfo["grid"]['linewidth'] = 0.8
+
+ax.xaxis._axinfo["grid"]['linestyle'] = '--'
+ax.yaxis._axinfo["grid"]['linestyle'] = '--'
+ax.zaxis._axinfo["grid"]['linestyle'] = '--'
+
+
+# =========================================================
+# LIMITES
+# =========================================================
+
+ax.set_zlim(0, np.max(V))
+
+
+# =========================================================
+# VISUALIZAÇÃO
+# =========================================================
+
+ax.view_init(
+    elev=28,
+    azim=-130
+)
+
+
+# =========================================================
+# LEGENDA
+# =========================================================
+
+ax.legend(
+    loc='upper left',
+    fontsize=11
+)
+
+
+# =========================================================
+# BARRA DE CORES
+# =========================================================
+
+cbar = fig.colorbar(
+    surf,
+    shrink=0.6,
+    aspect=20,
+    pad=0.1
+)
+
+cbar.set_label(
+    'Preço da Opção',
+    fontsize=11
+)
+
+
+# =========================================================
+# SALVAR
 # =========================================================
 
 plt.savefig(
-    "supbs.png",
+    "superficie_black_scholes_ATM.png",
     dpi=300,
     bbox_inches='tight'
 )
 
 
 # =========================================================
-# MOSTRAR FIGURA
+# MOSTRAR
 # =========================================================
 
 plt.show()
 
-
-print("\nFigura salva como: supbs.png")
+print("\nFigura salva como: superficie_black_scholes_ATM.png")
